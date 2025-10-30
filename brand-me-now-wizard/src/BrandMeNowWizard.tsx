@@ -8,6 +8,13 @@ export default function BrandMeNowWizard() {
     | "palette" | "loading4" | "logo" | "loading5" | "product" | "loading6"
     | "preview" | "loading7" | "profit" | "loading8" | "book" | "done";
 
+  const tips = [
+    "Tip: Include details about your audience (e.g., Gen Z wellness) for better personalized results.",
+    "Tip: Specify your brand's tone (e.g., professional, fun) for tailored suggestions.",
+    "Tip: Add industry details for more relevant ideas.",
+    "Tip: Describe your target market size for accurate projections.",
+  ];
+
   const [step, setStep] = useState<Step>("form");
   const [user, setUser] = useState({ name: "", email: "", ig: "" });
   const [vibe, setVibe] = useState("");
@@ -20,6 +27,9 @@ export default function BrandMeNowWizard() {
   const [sku, setSku] = useState<string | null>(null);
   const [previews, setPreviews] = useState<string[]>([]);
   const [profit, setProfit] = useState<{ base:number; retail:number; followers:number; conv:number; estUnits?:number; estProfit?:number }>({ base: 10, retail: 29, followers: 5000, conv: 0.02 });
+  const [currentTipIndex, setCurrentTipIndex] = useState(0);
+  const [showMoreVibes, setShowMoreVibes] = useState(false);
+  const [showMoreNames, setShowMoreNames] = useState(false);
 
   useEffect(() => {
     let t: any;
@@ -33,6 +43,13 @@ export default function BrandMeNowWizard() {
     if (step.startsWith("loading")) t = setTimeout(() => setStep(next[step]), 1200);
     return () => clearTimeout(t);
   }, [step]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTipIndex((prevIndex) => (prevIndex + 1) % tips.length);
+    }, 9000);
+    return () => clearInterval(interval);
+  }, [tips.length]);
 
   const Palettes: string[][] = [
     ["#0ea5e9", "#0369a1", "#111827"],
@@ -112,8 +129,14 @@ export default function BrandMeNowWizard() {
 
           {step === "social" && (
             <StepPanel key="social">
-              <h2 className="text-2xl md:text-3xl font-semibold text-center">Vision Input / Social Scan</h2>
-              <p className="mt-2 text-center text-gray-600">{user.ig ? `Scanning @${user.ig} vibe & audience… or` : "Pick a vibe or describe your brand style & mood."}</p>
+              <h2 className="text-2xl md:text-3xl font-semibold text-center mt-4">Vision Input / Social Scan</h2>
+              <p className="text-center text-gray-700 text-lg">Hi, {user.name}. Now let's define your brand vision to create something amazing.</p>
+              <p className="text-center text-gray-700 text-lg">This helps me generate personalized palettes, logos, and suggestions.</p>
+              {user.ig ? (
+                <p className="mt-2 text-center text-violet-600">Scanning @{user.ig} for vibe and audience insights... Choose one option or add more details below.</p>
+              ) : (
+                <p className="mt-2 text-center text-gray-600">Tell me about your brand style, mood, and audience.</p>
+              )}
               <div className="mt-6 max-w-3xl mx-auto">
                 <div className="flex flex-wrap gap-2 justify-center">
                   {[
@@ -123,12 +146,38 @@ export default function BrandMeNowWizard() {
                     "Eco, earthy, natural",
                     "Streetwear, edgy, high-contrast",
                     "Playful, colorful, friendly",
+                    ...(showMoreVibes ? [
+                      "Modern, sleek, professional",
+                      "Vintage, retro, nostalgic",
+                      "Artistic, creative, expressive",
+                      "Sporty, energetic, dynamic",
+                      "Elegant, sophisticated, timeless",
+                      "Fun, quirky, whimsical",
+                    ] : []),
                   ].map(opt => (
                     <Chip key={opt} onClick={()=>setVibe(opt)}>{opt}</Chip>
                   ))}
                 </div>
+                {!showMoreVibes && (
+                  <div className="mt-4 flex justify-center">
+                    <Chip onClick={() => setShowMoreVibes(true)}>More..</Chip>
+                  </div>
+                )}
                 <textarea className="w-full rounded-xl border px-4 py-3 mt-4" rows={4} placeholder="Describe your brand style & audience…" value={vibe} onChange={(e)=>setVibe(e.target.value)} />
-                <div className="mt-2 text-sm text-gray-500 flex items-center gap-2"><Wand2 className="h-4 w-4 text-violet-600"/> Tip: Add audience (e.g., Gen Z wellness) for better palettes.</div>
+                <div className="mt-2 text-sm text-gray-500 flex items-center gap-2">
+                  <Wand2 className="h-4 w-4 text-violet-600"/>
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={currentTipIndex}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 2 }}
+                    >
+                      {tips[currentTipIndex]}
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
               </div>
               <div className="mt-8 flex items-center justify-between">
                 <SecondaryButton onClick={()=>setStep("form")}>Back</SecondaryButton>
@@ -141,9 +190,10 @@ export default function BrandMeNowWizard() {
 
           {step === "name" && (
             <StepPanel key="name">
-              <h2 className="text-2xl md:text-3xl font-semibold text-center">Name Selection</h2>
-              <p className="mt-2 text-center text-gray-600">Enter a name or pick a suggestion. We’ll do a quick availability check.</p>
-              <NameChooser value={brandName} onChange={setBrandName} onCheck={async(name)=>MockAPI.availability(name)} />
+              <h2 className="text-2xl md:text-3xl font-semibold text-center">Brand Name Selection</h2>
+              <p className="text-center text-gray-700 text-lg">Great! {user.name}, now let's find a name that resonates with your '{vibe}' vibe!</p>
+              <p className="text-center text-gray-700 text-lg">Enter a name or pick a suggestion. We’ll do a quick domain name availability check.</p>
+              <NameChooser value={brandName} onChange={setBrandName} onCheck={async(name)=>MockAPI.availability(name)} vibe={vibe} user={user} showMore={showMoreNames} onShowMore={setShowMoreNames} />
               <div className="mt-8 flex items-center justify-between">
                 <SecondaryButton onClick={()=>setStep("social")}>Back</SecondaryButton>
                 <PrimaryButton onClick={()=>setStep("loading3")} disabled={!brandName.trim()}>Continue</PrimaryButton>
@@ -378,23 +428,46 @@ function LabeledNumber({ label, value, onChange }: { label:string; value:number;
   );
 }
 
-function NameChooser({ value, onChange, onCheck }: { value:string; onChange:(v:string)=>void; onCheck:(name:string)=>Promise<{available:boolean; suggestion?:string}> }) {
-  const suggestions = ["NovaFuel", "SkinMuse", "PeakHydro", "LeafLabs", "VitalHaus", "GlowRitual"];
+function NameChooser({ value, onChange, onCheck, vibe, user, showMore, onShowMore }: { value:string; onChange:(v:string)=>void; onCheck:(name:string)=>Promise<{available:boolean; suggestion?:string}>; vibe:string; user:{name:string; email:string; ig:string}; showMore:boolean; onShowMore:(show:boolean)=>void }) {
+  const suggestions = [
+    { name: "NovaFuel"},
+    { name: "SkinMuse" },
+    { name: "PeakHydro" },
+    { name: "LeafLabs" },
+    { name: "VitalHaus" },
+    { name: "GlowRitual" },
+    ...(showMore ? [
+      { name: "AuraBoost"},
+      { name: "ZenBloom" },
+      { name: "PulseVita" },
+      { name: "EcoEssence"},
+      { name: "SparkSynergy" },
+      { name: "LuxeLift"},
+    ] : []),
+  ];
   const [status, setStatus] = useState<null | {available:boolean; suggestion?:string}>(null);
   return (
     <div className="mt-6">
-      <div className="flex flex-wrap gap-2 justify-center">
+      <p className="mt-2 text-center text-violet-600">Here are some curated suggestions based on memorability, availability, and branding principles:</p>
+      <div className="mt-4 flex flex-wrap gap-2 justify-center">
         {suggestions.map(s => (
-          <button key={s} className="rounded-full border px-3 py-1 text-sm" onClick={()=>{onChange(s); setStatus(null);}}>{s}</button>
+          <div key={s.name} className="text-center">
+            <button className="rounded-full border px-3 py-1 text-sm hover:bg-gray-50" onClick={()=>{onChange(s.name); setStatus(null);}}>{s.name}</button>
+          </div>
         ))}
       </div>
+      {!showMore && (
+        <div className="mt-4 flex justify-center">
+          <Chip onClick={() => onShowMore(true)}>More..</Chip>
+        </div>
+      )}
       <div className="mt-4 max-w-2xl mx-auto grid md:grid-cols-[1fr,auto] gap-2">
         <input className="rounded-xl border px-4 py-3" placeholder="Enter a name or pick one" value={value} onChange={(e)=>{onChange(e.target.value); setStatus(null);}} />
-        <button className="rounded-xl px-4 py-3 border" onClick={async()=>{ const r = await onCheck(value); setStatus(r); }}>Check</button>
+        <button className="rounded-xl px-4 py-3 border" onClick={async()=>{ const r = await onCheck(value); setStatus(r); }}>Check Availability</button>
       </div>
       {status && (
         <div className={`mt-2 text-center text-sm ${status.available?"text-green-700":"text-orange-700"}`}>
-          {status.available ? <span className="inline-flex items-center gap-1"><Check className="h-4 w-4"/> Available</span> : <>Not available{status.suggestion?`, try “${status.suggestion}”`:""}</>}
+          {status.available ? <span className="inline-flex items-center gap-1"><Check  className="h-4 w-4"/> Available</span> : <>Not available{status.suggestion?`, try “${status.suggestion}”`:""}</>}
         </div>
       )}
     </div>
