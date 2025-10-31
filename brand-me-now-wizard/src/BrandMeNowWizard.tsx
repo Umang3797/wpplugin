@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, Wand2, ChevronRight, ChevronLeft, Sparkles, Check } from "lucide-react";
+import { colorMap, parseColors } from './utils/colorUtils';
 
 export default function BrandMeNowWizard() {
   type Step =
@@ -20,6 +21,9 @@ export default function BrandMeNowWizard() {
   const [vibe, setVibe] = useState("");
   const [brandName, setBrandName] = useState("");
   const [paletteColors, setPaletteColors] = useState<string[]>([]);
+  const [customInput, setCustomInput] = useState("");
+  const [paletteSelected, setPaletteSelected] = useState(false);
+  const [customError, setCustomError] = useState("");
   const [logoStyles, setLogoStyles] = useState<string[]>([]);
   const [logoOptions, setLogoOptions] = useState<string[]>([]);
   const [chosenLogo, setChosenLogo] = useState<string | null>(null);
@@ -30,6 +34,7 @@ export default function BrandMeNowWizard() {
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const [showMoreVibes, setShowMoreVibes] = useState(false);
   const [showMoreNames, setShowMoreNames] = useState(false);
+  const [showMorePalettes, setShowMorePalettes] = useState(false);
 
   useEffect(() => {
     let t: any;
@@ -56,7 +61,13 @@ export default function BrandMeNowWizard() {
     ["#22c55e", "#14532d", "#0f172a"],
     ["#f59e0b", "#b45309", "#111827"],
     ["#ef4444", "#7f1d1d", "#0f172a"],
+    ["#8b5cf6", "#6d28d9", "#1e1b4b"],
+    ["#06b6d4", "#0891b2", "#0c4a6e"],
+    ["#84cc16", "#65a30d", "#1f2937"],
+    ["#f97316", "#c2410c", "#1f2937"],
   ];
+
+
   const styleSeeds = ["Futuristic", "Elegant", "Minimalist", "Geometric", "Mascot", "Nature"];
   const Categories = [
     { id: "supplements", label: "Supplements" },
@@ -206,18 +217,70 @@ export default function BrandMeNowWizard() {
           {step === "palette" && (
             <StepPanel key="palette">
               <h2 className="text-2xl md:text-3xl font-semibold text-center">Color Palette</h2>
-              <p className="mt-2 text-center text-gray-600">Pick a palette based on your vibe.</p>
-              <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-                {Palettes.map((p, idx) => (
-                  <button key={idx} onClick={()=>setPaletteColors(p)} className={`rounded-2xl border p-4 hover:shadow-sm ${paletteColors===p?"ring-2 ring-violet-500":""}`}>
-                    <div className="flex gap-2">{p.map(c => (<div key={c} className="h-6 w-6 rounded" style={{background:c}}/>))}</div>
-                  </button>
-                ))}
+              <p className="mt-2 text-center text-gray-600">Time to pick your brand colors! This will influence your logos and labels. You can choose from examples below or enter your own colors (e.g., 'blue, green, yellow').</p>
+              <div className="mt-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {Palettes.slice(0, 4).map((p, idx) => (
+                    <button key={idx} onClick={()=>{setPaletteColors(p); setPaletteSelected(true); setCustomError("");}} className={`rounded-2xl border p-4 hover:shadow-sm ${paletteColors===p?"ring-2 ring-violet-500":""}`}>
+                      <div className="flex gap-2">{p.map(c => (<div key={c} className="h-6 w-6 rounded" style={{background:c}}/>))}</div>
+                    </button>
+                  ))}
+                </div>
+                {!showMorePalettes && (
+                  <div className="mt-4 flex justify-center">
+                    <Chip onClick={() => setShowMorePalettes(true)}>More..</Chip>
+                  </div>
+                )}
+                {showMorePalettes && (
+                  <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {Palettes.slice(4).map((p, idx) => (
+                      <button key={idx + 4} onClick={()=>{setPaletteColors(p); setPaletteSelected(true); setCustomError("");}} className={`rounded-2xl border p-4 hover:shadow-sm ${paletteColors===p?"ring-2 ring-violet-500":""}`}>
+                        <div className="flex gap-2">{p.map(c => (<div key={c} className="h-6 w-6 rounded" style={{background:c}}/>))}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="mt-8 flex items-center justify-between">
-                <SecondaryButton onClick={()=>setStep("name")}>Back</SecondaryButton>
-                <PrimaryButton onClick={()=>setStep("loading4")} disabled={!paletteColors.length}>Continue</PrimaryButton>
+              <div className="mt-6 max-w-md mx-auto">
+                <input className="w-full rounded-xl border px-4 py-3" placeholder="Enter colors (e.g., 'blue, green, yellow')" value={customInput} onChange={(e)=>setCustomInput(e.target.value)} />
+                <div className="mt-2 flex justify-center">
+                  <button className="rounded-xl px-4 py-2 border hover:bg-gray-50" onClick={()=>{
+                    const parsed = parseColors(customInput);
+                    if (parsed) {
+                      setPaletteColors(parsed);
+                      setPaletteSelected(true);
+                      setCustomError("");
+                    } else {
+                      setCustomError("Please enter 1-3 valid color names (e.g., red, blue, green).");
+                    }
+                  }}>Show Palette</button>
+                </div>
+                {customError && <p className="mt-2 text-center text-red-600 text-sm">{customError}</p>}
               </div>
+              {paletteSelected && (
+                <div className="mt-6 text-center">
+                  <p className="text-gray-700">Here's your color palette! It includes {paletteColors.map(c => c).join(", ")}.</p>
+                  <div className="mt-4 flex justify-center gap-2">
+                    {paletteColors.map(c => (
+                      <div key={c} className="flex flex-col items-center">
+                        <div className="h-12 w-12 rounded" style={{background:c}}></div>
+                        <span className="text-xs mt-1">{c}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-4 text-gray-700">Are you happy with this, or would you like to make changes?</p>
+                  <div className="mt-4 flex justify-center gap-3">
+                    <button className="rounded-xl px-4 py-2 border hover:bg-gray-50" onClick={()=>{setPaletteSelected(false); setPaletteColors([]); setCustomInput(""); setCustomError("");}}>Clear</button>
+                    <PrimaryButton onClick={()=>setStep("loading4")}>Yes, proceed</PrimaryButton>
+                  </div>
+                </div>
+              )}
+              {!paletteSelected && (
+                <div className="mt-8 flex items-center justify-between">
+                  <SecondaryButton onClick={()=>setStep("name")}>Back</SecondaryButton>
+                  <div></div>
+                </div>
+              )}
             </StepPanel>
           )}
 
